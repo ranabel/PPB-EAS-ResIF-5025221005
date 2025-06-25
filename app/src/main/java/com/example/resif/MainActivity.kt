@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -16,7 +17,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Text
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,27 +26,23 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material.icons.outlined.Bookmark
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.PersonOutline
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,24 +52,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.*
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBackIosNew
 
 import com.example.resif.ui.theme.ResIFTheme
 
@@ -81,34 +71,80 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             ResIFTheme {
-
                 ResIFApp()
             }
         }
     }
 }
 
+// Navigation Enum for type safety
+enum class Screen {
+    Welcome,
+    Login,
+    Register,
+    Main
+}
+
+// Bottom Navigation Item Data Class
+data class BottomNavItem(
+    val route: String,
+    val selectedIcon: ImageVector,
+    val unselectedIcon: ImageVector
+)
+
 @Composable
 fun ResIFApp() {
-    var currentScreen by remember { mutableStateOf("welcome") }
+    var currentScreen by remember { mutableStateOf(Screen.Welcome) }
 
-    when (currentScreen) {
-        "welcome" -> WelcomeScreen(
-            onLoginClick = { currentScreen = "login" },
-            onRegisterClick = { currentScreen = "register" }
-        )
-        "login" -> LoginScreen(
-            onLoginSuccess = { currentScreen = "home" },
-//            onBackClick = { currentScreen = "welcome" },
-            onRegisterClick = { currentScreen = "register" }
-        )
-        "register" -> RegisterScreen(
-            onRegisterSuccess = { currentScreen = "home" },
-            onLoginClick = { currentScreen = "login" }
-        )
-        "home" -> HomeScreen(
-            onLogoutClick = { currentScreen = "welcome" }
-        )
+    Surface(modifier = Modifier.fillMaxSize()) {
+        when (currentScreen) {
+            Screen.Welcome -> WelcomeScreen(
+                onLoginClick = { currentScreen = Screen.Login },
+                onRegisterClick = { currentScreen = Screen.Register }
+            )
+            Screen.Login -> LoginScreen(
+                onLoginSuccess = { currentScreen = Screen.Main },
+                onRegisterClick = { currentScreen = Screen.Register }
+            )
+            Screen.Register -> RegisterScreen(
+                onRegisterSuccess = { currentScreen = Screen.Main },
+                onLoginClick = { currentScreen = Screen.Login }
+            )
+            Screen.Main -> MainScreen(
+                onLogoutClick = { currentScreen = Screen.Welcome }
+            )
+        }
+    }
+}
+
+@Composable
+fun MainScreen(onLogoutClick: () -> Unit) {
+    var selectedRoute by remember { mutableStateOf("home") }
+
+    val bottomNavItems = listOf(
+        BottomNavItem("home", Icons.Filled.Home, Icons.Outlined.Home),
+        BottomNavItem("booking", Icons.Filled.Search, Icons.Outlined.Search),
+        BottomNavItem("history", Icons.Filled.Bookmark, Icons.Outlined.BookmarkBorder),
+        BottomNavItem("profile", Icons.Filled.Person, Icons.Outlined.PersonOutline)
+    )
+
+    Scaffold(
+        bottomBar = {
+            BottomNavigationBar(
+                items = bottomNavItems,
+                selectedRoute = selectedRoute,
+                onItemClick = { route -> selectedRoute = route }
+            )
+        }
+    ) { paddingValues ->
+        Box(modifier = Modifier.padding(paddingValues)) {
+            when (selectedRoute) {
+                "home" -> HomeScreen(onLogoutClick = onLogoutClick)
+                "booking" -> BookingScreen(onLogoutClick = onLogoutClick)
+                "history" -> HistoryScreen(onLogoutClick = onLogoutClick)
+                "profile" -> ProfileScreen(onLogoutClick = onLogoutClick)
+            }
+        }
     }
 }
 
@@ -224,173 +260,156 @@ fun ProfileScreen(
     val deepBlue = Color(0xFF20469B)
     val navyBlack = Color(0xFF0B1835)
     val lightGray = Color(0xFFEBEBEB)
-    val bottomNavColor = Color(0xFF0A0C2D)
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
+            .verticalScroll(rememberScrollState())
     ) {
-        Column(
+        // Header Profile Card
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 80.dp)
+                .fillMaxWidth()
+                .height(180.dp)
+                .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+                .background(
+                    Brush.verticalGradient(colors = listOf(deepBlue, navyBlack))
+                )
         ) {
-            // Header Profile Card
-            Box(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
-                    .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
-                    .background(
-                        Brush.verticalGradient(colors = listOf(deepBlue, navyBlack))
+                    .padding(horizontal = 24.dp, vertical = 60.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Profile Icon
+                Box(
+                    modifier = Modifier
+                        .size(60.dp)
+                        .background(
+                            Color.White.copy(alpha = 0.2f),
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.AccountCircle,
+                        contentDescription = "Profile Icon",
+                        tint = Color.White,
+                        modifier = Modifier.size(36.dp)
                     )
-            ) {
-                Row(
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Hi, Welcome!",
+                        color = Color.White,
+                        fontSize = 30.sp,
+                        letterSpacing = 3.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Nabilah Atika",
+                        color = Color(0xFF59A7FF),
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 2.sp,
+                        fontSize = 26.sp
+                    )
+                }
+
+                // Notification Icon
+                Box(
+                    contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 60.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .border(width = 1.dp, color = Color.White, shape = CircleShape)
+                        .clickable { /* Handle notification click */ }
                 ) {
-                    // Profile Icon
-                    Box(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .background(
-                                Color.White.copy(alpha = 0.2f),
-                                shape = CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.AccountCircle,
-                            contentDescription = "Profile Icon",
-                            tint = Color.White,
-                            modifier = Modifier.size(36.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Hi, Welcome!",
-                            color = Color.White,
-                            fontSize = 30.sp,
-                            letterSpacing = 3.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = "Nabilah Atika",
-                            color = Color(0xFF59A7FF),
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 2.sp,
-                            fontSize = 26.sp
-                        )
-                    }
-
-                    // Notification Icon
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .border(width = 1.dp, color = Color.White, shape = CircleShape)
-                            .clickable { onLogoutClick() }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = "Notification",
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Notification",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
-            ) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentWidth(Alignment.CenterHorizontally)
-                        .width(400.dp)
-                        .padding(horizontal = 16.dp),
-                    colors = CardDefaults.cardColors(containerColor = lightGray),
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(modifier = Modifier.padding(24.dp)) {
-                        Text(
-                            text = "Account Details",
-                            fontSize = 30.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black,
-                            modifier = Modifier.padding(bottom = 20.dp)
-                        )
-
-                        // Full Name
-                        ProfileDetailItem(
-                            icon = Icons.Default.Person,
-                            iconColor = deepBlue,
-                            label = "Full Name",
-                            value = "Nabilah Atika"
-                        )
-
-                        Spacer(modifier = Modifier.height(20.dp))
-
-                        // Email
-                        ProfileDetailItem(
-                            icon = Icons.Default.Email,
-                            iconColor = deepBlue,
-                            label = "Email",
-                            value = "inielava26@gmail.com"
-                        )
-
-                        Spacer(modifier = Modifier.height(40.dp))
-
-                        // Additional options could be added here
-                        // Student ID, Department, etc.
-
-                        Button(
-                            onClick = onLogoutClick,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(44.dp)
-                                .padding(horizontal = 13.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xCCFF5959)
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                        ) {
-                            Text(
-                                text = "Logout",
-                                color = Color(0xFFFFFFFF),
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 2.sp
-                            )
-                        }
-                    }
-                }
-            }
-            // Account Details Card
-            Spacer(modifier = Modifier.height(24.dp))
         }
 
-        // Bottom Navigation Bar
-        BottomNavigationBar(
-            modifier = Modifier.align(Alignment.BottomCenter),
-            backgroundColor = bottomNavColor
-        )
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentWidth(Alignment.CenterHorizontally)
+                    .width(400.dp)
+                    .padding(horizontal = 16.dp),
+                colors = CardDefaults.cardColors(containerColor = lightGray),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(24.dp)) {
+                    Text(
+                        text = "Account Details",
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black,
+                        modifier = Modifier.padding(bottom = 20.dp)
+                    )
+
+                    // Full Name
+                    ProfileDetailItem(
+                        icon = Icons.Default.Person,
+                        iconColor = deepBlue,
+                        label = "Full Name",
+                        value = "Nabilah Atika"
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Email
+                    ProfileDetailItem(
+                        icon = Icons.Default.Email,
+                        iconColor = deepBlue,
+                        label = "Email",
+                        value = "inielava26@gmail.com"
+                    )
+
+                    Spacer(modifier = Modifier.height(40.dp))
+
+                    Button(
+                        onClick = onLogoutClick,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                            .padding(horizontal = 13.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xCCFF5959)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Text(
+                            text = "Logout",
+                            color = Color(0xFFFFFFFF),
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 2.sp
+                        )
+                    }
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
-
 
 @Composable
 fun ProfileDetailItem(
@@ -447,14 +466,13 @@ data class RoomDetail(
     val technician: String = "Junaidy Abdillah",
     val phone: String = "087855224496"
 )
+
 @Composable
 fun HistoryScreen(
     onLogoutClick: () -> Unit = {}
 ) {
     val deepBlue = Color(0xFF20469B)
     val navyBlack = Color(0xFF0B1835)
-    val lightGray = Color(0xFFEBEBEB)
-    val bottomNavColor = Color(0xFF0A0C2D)
 
     // Sample booking history data
     val bookings = listOf(
@@ -478,122 +496,111 @@ fun HistoryScreen(
         )
     )
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
     ) {
-        Column(
+        // Header
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 80.dp) // Same as ProfileScreen
+                .fillMaxWidth()
+                .height(180.dp)
+                .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+                .background(
+                    Brush.verticalGradient(colors = listOf(deepBlue, navyBlack))
+                )
         ) {
-            // Header (same as ProfileScreen)
-            Box(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
-                    .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
-                    .background(
-                        Brush.verticalGradient(colors = listOf(deepBlue, navyBlack))
-                    )
+                    .padding(horizontal = 24.dp, vertical = 60.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
+                // Profile Icon
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 60.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .size(60.dp)
+                        .background(
+                            Color.White.copy(alpha = 0.2f),
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    // Profile Icon (same as ProfileScreen)
-                    Box(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .background(
-                                Color.White.copy(alpha = 0.2f),
-                                shape = CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.AccountCircle,
-                            contentDescription = "Profile Icon",
-                            tint = Color.White,
-                            modifier = Modifier.size(36.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Hi, Welcome!",
-                            color = Color.White,
-                            fontSize = 30.sp,
-                            letterSpacing = 3.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = "Nabilah Atika",
-                            color = Color(0xFF59A7FF),
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 2.sp,
-                            fontSize = 26.sp
-                        )
-                    }
-
-                    // Notification Icon (same as ProfileScreen)
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .border(width = 1.dp, color = Color.White, shape = CircleShape)
-                            .clickable { onLogoutClick() }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = "Notification",
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Outlined.AccountCircle,
+                        contentDescription = "Profile Icon",
+                        tint = Color.White,
+                        modifier = Modifier.size(36.dp)
+                    )
                 }
-            }
 
-            // Content area - History List
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.White)
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
-            ) {
-                Text(
-                    text = "Booking History",
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
+                Spacer(modifier = Modifier.width(16.dp))
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Hi, Welcome!",
+                        color = Color.White,
+                        fontSize = 30.sp,
+                        letterSpacing = 3.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Nabilah Atika",
+                        color = Color(0xFF59A7FF),
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 2.sp,
+                        fontSize = 26.sp
+                    )
+                }
 
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                // Notification Icon
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .border(width = 1.dp, color = Color.White, shape = CircleShape)
+                        .clickable { /* Handle notification click */ }
                 ) {
-                    items(bookings) { booking ->
-                        BookingHistoryCard(booking)
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Notification",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
         }
 
-        // EXACT SAME BottomNavigationBar as ProfileScreen
-        BottomNavigationBar(
-            modifier = Modifier.align(Alignment.BottomCenter),
-            backgroundColor = bottomNavColor
-        )
+        // Content area - History List
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White)
+                .padding(horizontal = 24.dp, vertical = 16.dp)
+        ) {
+            Text(
+                text = "Booking History",
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(bookings) { booking ->
+                    BookingHistoryCard(booking)
+                }
+            }
+        }
     }
 }
+
 // Data class for booking history
 data class BookingHistory(
     val date: String,
@@ -615,6 +622,7 @@ fun BookingHistoryCard(booking: BookingHistory) {
             .fillMaxWidth()
             .border(BorderStroke(1.dp, Color(0xFF20469B)), shape = RoundedCornerShape(14.dp)),
         shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
@@ -664,6 +672,7 @@ fun BookingScreen(
 ) {
     val deepBlue = Color(0xFF20469B)
     val navyBlack = Color(0xFF0B1835)
+    val context = LocalContext.current
 
     // State untuk menampung room yang dipilih
     var selectedRoom by remember { mutableStateOf<RoomDetail?>(null) }
@@ -705,140 +714,137 @@ fun BookingScreen(
         RoomDetail("RTV", "Ruang TV")
     )
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
     ) {
+        // Header Profile Card
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+                .background(
+                    Brush.verticalGradient(colors = listOf(deepBlue, navyBlack))
+                )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 60.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Profile Icon
+                Box(
+                    modifier = Modifier
+                        .size(60.dp)
+                        .background(
+                            Color.White.copy(alpha = 0.2f),
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.AccountCircle,
+                        contentDescription = "Profile Icon",
+                        tint = Color.White,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Hi, Welcome!",
+                        color = Color.White,
+                        fontSize = 30.sp,
+                        letterSpacing = 3.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Nabilah Atika",
+                        color = Color(0xFF59A7FF),
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 2.sp,
+                        fontSize = 26.sp
+                    )
+                }
+
+                // Notification Icon
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .border(width = 1.dp, color = Color.White, shape = CircleShape)
+                        .clickable { /* Handle notification click */ }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Notification",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+        }
+
+        // Content area - Room List
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 80.dp)
+                .background(Color.White)
         ) {
-            // Header Profile Card
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp)
-                    .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
-                    .background(
-                        Brush.verticalGradient(colors = listOf(deepBlue, navyBlack))
-                    )
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 60.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Profile Icon
-                    Box(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .background(
-                                Color.White.copy(alpha = 0.2f),
-                                shape = CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.AccountCircle,
-                            contentDescription = "Profile Icon",
-                            tint = Color.White,
-                            modifier = Modifier.size(36.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Hi, Welcome!",
-                            color = Color.White,
-                            fontSize = 30.sp,
-                            letterSpacing = 3.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = "Nabilah Atika",
-                            color = Color(0xFF59A7FF),
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 2.sp,
-                            fontSize = 26.sp
-                        )
-                    }
-
-                    // Notification Icon
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .border(width = 1.dp, color = Color.White, shape = CircleShape)
-                            .clickable { onLogoutClick() }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = "Notification",
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
-            }
-
-            // Content area - Room List
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFFFFFFFF))
-//                    .padding(horizontal = 24.dp, vertical = 16.dp)
-            ) {
-                Text(
-                    text = "Room Booking",
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black,
-                    modifier = Modifier.padding(24.dp)
-                )
-
-                LazyColumn(
-                    modifier = Modifier.padding(horizontal = 24.dp)
-                ) {
-                    items(
-                        count = rooms.size,  // Use count parameter instead of direct list
-                        key = { index -> rooms[index].code }  // Use room code as unique key
-                    ) { index ->
-                        val room = rooms[index]
-                        RoomCard(
-                            room = room,
-                            onCardClick = { selectedRoom = room }
-                        )
-                    }
-                }
-            }
-        }
-
-        // Dialog detail room
-        selectedRoom?.let { room ->
-            RoomDetailDialog(
-                room = room,
-                bookingDate = bookingDate,
-                startTime = startTime,
-                endTime = endTime,
-                onDateChange = { bookingDate = it },
-                onStartTimeChange = { startTime = it },
-                onEndTimeChange = { endTime = it },
-                onBooking = {
-                    // Logic untuk booking
-                    selectedRoom = null
-                },
-                onDismiss = { selectedRoom = null }
+            Text(
+                text = "Room Booking",
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black,
+                modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 8.dp)
             )
+
+            LazyColumn(
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(
+                    items = rooms,
+                    key = { it.code }
+                ) { room ->
+                    RoomCard(
+                        room = room,
+                        onCardClick = { selectedRoom = room }
+                    )
+                }
+            }
         }
     }
-}
 
+    // Dialog detail room
+    selectedRoom?.let { room ->
+        RoomDetailDialog(
+            room = room,
+            bookingDate = bookingDate,
+            startTime = startTime,
+            endTime = endTime,
+            onDateChange = { bookingDate = it },
+            onStartTimeChange = { startTime = it },
+            onEndTimeChange = { endTime = it },
+            onBooking = {
+                // Logic untuk booking
+                Toast.makeText(context, "Booking submitted for ${room.code}", Toast.LENGTH_SHORT).show()
+                // Reset states
+                selectedRoom = null
+                bookingDate = ""
+                startTime = ""
+                endTime = ""
+            },
+            onDismiss = { selectedRoom = null }
+        )
+    }
+}
 
 @Composable
 fun RoomCard(
@@ -848,7 +854,6 @@ fun RoomCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
             .clickable { onCardClick() },
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -894,7 +899,9 @@ fun RoomDetailDialog(
             shape = RoundedCornerShape(16.dp)
         ) {
             Column(
-                modifier = Modifier.padding(24.dp)
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(24.dp)
             ) {
                 Text(
                     text = "Room Details",
@@ -923,7 +930,7 @@ fun RoomDetailDialog(
                     label = { Text("Date (e.g. 10 Juni 2025)") },
                     modifier = Modifier.fillMaxWidth()
                 )
-
+                Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -992,11 +999,11 @@ fun CustomTextField(
     TextField(
         value = value,
         onValueChange = onValueChange,
-        textStyle = TextStyle(fontSize = 24.sp),
+        textStyle = TextStyle(fontSize = 20.sp),
         placeholder = {
             Text(
                 text = placeholder,
-                fontSize = 24.sp,
+                fontSize = 20.sp,
                 color = Color.Gray
             )
         },
@@ -1006,18 +1013,15 @@ fun CustomTextField(
                 contentDescription = null,
                 tint = Color.Gray,
                 modifier = Modifier
-                    .size(44.dp)
-                    .padding(start = 10.dp, end = 2.dp)
-
+                    .size(40.dp)
+                    .padding(end = 8.dp)
             )
         },
         trailingIcon = if (isPassword) {
             {
+                val icon = if (isPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                 IconButton(onClick = onPasswordVisibilityChange, modifier = Modifier.padding(end = 8.dp)) {
-                    Text(
-                        text = if (isPasswordVisible) "👁️" else "🙈",
-                        fontSize = 30.sp
-                    )
+                    Icon(imageVector = icon, contentDescription = "Toggle password visibility")
                 }
             }
         } else null,
@@ -1040,37 +1044,34 @@ fun CustomTextField(
 
 @Composable
 fun BottomNavigationBar(
-    modifier: Modifier = Modifier,
-    backgroundColor: Color
+    items: List<BottomNavItem>,
+    selectedRoute: String,
+    onItemClick: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(100.dp)
-            .background(backgroundColor)
-            .padding(vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically
+    NavigationBar(
+        modifier = modifier,
+        containerColor = Color(0xFF0A0C2D),
+        tonalElevation = 8.dp
     ) {
-        val navItems = listOf(
-            Icons.Outlined.Home,
-            Icons.Outlined.Search,
-            Icons.Outlined.Bookmark,
-            Icons.Outlined.Person
-        )
-
-        navItems.forEach { icon ->
-            IconButton(
-                onClick = { /* Handle navigation */ },
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp)
+        items.forEach { item ->
+            val isSelected = item.route == selectedRoute
+            NavigationBarItem(
+                selected = isSelected,
+                onClick = { onItemClick(item.route) },
+                icon = {
+                    Icon(
+                        imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
+                        contentDescription = item.route.replaceFirstChar { it.uppercase() },
+                        modifier = Modifier.size(28.dp)
+                    )
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = Color.White,
+                    unselectedIconColor = Color.Gray,
+                    indicatorColor = Color.Transparent // No indicator circle
                 )
-            }
+            )
         }
     }
 }
@@ -1097,13 +1098,13 @@ fun RegisterScreen(
         Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 222.dp)
+                .padding(top = 100.dp, start = 16.dp, end = 16.dp)
         ) {
             Text(
                 text = "CREATE AN ACCOUNT",
-                fontSize = 40.sp,
+                fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 4.sp,
+                letterSpacing = 2.sp,
                 color = Color.Black,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
@@ -1111,7 +1112,7 @@ fun RegisterScreen(
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = "Join us to get started",
-                fontSize = 24.sp,
+                fontSize = 18.sp,
                 color = Color.Gray,
                 letterSpacing = 1.sp,
                 textAlign = TextAlign.Center,
@@ -1123,8 +1124,8 @@ fun RegisterScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight()
-                .offset(y = 400.dp)
+                .fillMaxHeight(0.70f)
+                .align(Alignment.BottomCenter)
                 .clip(RoundedCornerShape(topStart = 70.dp, topEnd = 70.dp))
                 .background(
                     Brush.verticalGradient(
@@ -1137,12 +1138,9 @@ fun RegisterScreen(
         ) {
             Column(
                 modifier = Modifier
-                    .width(400.dp)
-                    .height(1100.dp)
-                    .align(Alignment.Center)
-//                    .fillMaxHeight()
-                    .offset(y = 10.dp)
-                    .padding(horizontal = 24.dp, vertical = 44.dp),
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Handle
@@ -1150,10 +1148,9 @@ fun RegisterScreen(
                     modifier = Modifier
                         .width(60.dp)
                         .height(5.dp)
-//                        .offset(y = 10.dp)
                         .background(Color.White.copy(alpha = 0.8f), RoundedCornerShape(3.dp))
                 )
-                Spacer(modifier = Modifier.height(50.dp))
+                Spacer(modifier = Modifier.height(30.dp))
 
                 // Input Fields
                 CustomTextField(
@@ -1163,7 +1160,7 @@ fun RegisterScreen(
                     leadingIcon = Icons.Default.Person
                 )
 
-                Spacer(modifier = Modifier.height(22.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 CustomTextField(
                     value = email,
@@ -1173,7 +1170,7 @@ fun RegisterScreen(
                     keyboardType = KeyboardType.Email
                 )
 
-                Spacer(modifier = Modifier.height(22.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 CustomTextField(
                     value = password,
@@ -1185,7 +1182,7 @@ fun RegisterScreen(
                     onPasswordVisibilityChange = { isPasswordVisible = !isPasswordVisible }
                 )
 
-                Spacer(modifier = Modifier.height(22.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 CustomTextField(
                     value = confirmPassword,
@@ -1197,7 +1194,7 @@ fun RegisterScreen(
                     onPasswordVisibilityChange = { isConfirmPasswordVisible = !isConfirmPasswordVisible }
                 )
 
-                Spacer(modifier = Modifier.height(55.dp))
+                Spacer(modifier = Modifier.height(30.dp))
 
                 // Register Button
                 Button(
@@ -1219,20 +1216,20 @@ fun RegisterScreen(
                         .fillMaxWidth()
                         .height(50.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF20469B)
+                        containerColor = Color(0xFFF1F1F1)
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
                         text = "REGISTER",
-                        color = Color.White,
-                        fontSize = 24.sp,
+                        color = Color(0xFF1A47A8),
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 4.sp
                     )
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically
@@ -1240,7 +1237,7 @@ fun RegisterScreen(
                     Text(
                         text = "Already have an account? ",
                         color = Color.White.copy(alpha = 0.9f),
-                        fontSize = 24.sp
+                        fontSize = 16.sp
                     )
                     TextButton(
                         onClick = onLoginClick,
@@ -1249,7 +1246,8 @@ fun RegisterScreen(
                         Text(
                             text = "Login here",
                             color = Color(0xFF7BB3FF),
-                            fontSize = 24.sp
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -1277,11 +1275,11 @@ fun LoginScreen(
         Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 222.dp)
+                .padding(top = 100.dp, start = 16.dp, end = 16.dp)
         ) {
             Text(
                 text = "WELCOME BACK",
-                fontSize = 40.sp,
+                fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 4.sp,
                 color = Color.Black,
@@ -1291,7 +1289,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = "Please login to your account",
-                fontSize = 24.sp,
+                fontSize = 18.sp,
                 color = Color.Gray,
                 letterSpacing = 1.sp,
                 textAlign = TextAlign.Center,
@@ -1303,8 +1301,8 @@ fun LoginScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight()
-                .offset(y = 400.dp)
+                .fillMaxHeight(0.70f)
+                .align(Alignment.BottomCenter)
                 .clip(RoundedCornerShape(topStart = 70.dp, topEnd = 70.dp))
                 .background(
                     Brush.verticalGradient(
@@ -1317,11 +1315,9 @@ fun LoginScreen(
         ) {
             Column(
                 modifier = Modifier
-                    .width(400.dp)
-                    .height(1400.dp)
-                    .align(Alignment.Center)
-                    .offset(y = 10.dp)
-                    .padding(horizontal = 24.dp, vertical = 44.dp),
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Handle
@@ -1331,7 +1327,7 @@ fun LoginScreen(
                         .height(5.dp)
                         .background(Color.White.copy(alpha = 0.8f), RoundedCornerShape(3.dp))
                 )
-                Spacer(modifier = Modifier.height(50.dp))
+                Spacer(modifier = Modifier.height(30.dp))
 
                 // Email Field
                 CustomTextField(
@@ -1341,7 +1337,7 @@ fun LoginScreen(
                     leadingIcon = Icons.Default.Email,
                     keyboardType = KeyboardType.Email
                 )
-                Spacer(modifier = Modifier.height(22.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Password Field
                 CustomTextField(
@@ -1356,16 +1352,16 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Forgot Password?   ",
-                    color = Color.White.copy(alpha = 0.8f),
-                    fontSize = 18.sp,
-                    letterSpacing = 2.sp,
+                    text = "Forgot Password?",
+                    color = Color(0xFF7BB3FF),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
                     modifier = Modifier
                         .align(Alignment.End)
                         .clickable { /* TODO: Add forgot password logic */ }
                 )
 
-                Spacer(modifier = Modifier.height(40.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Login Button
                 Button(
@@ -1381,28 +1377,28 @@ fun LoginScreen(
                         .fillMaxWidth()
                         .height(50.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF20469B)
+                        containerColor = Color(0xFFF1F1F1)
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
                         text = "LOGIN",
-                        color = Color.White,
-                        fontSize = 24.sp,
+                        color = Color(0xFF1A47A8),
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 4.sp
                     )
                 }
 
-                Spacer(modifier = Modifier.height(37.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 Text(
                     text = "------------- Or continue with -------------",
                     color = Color.White.copy(alpha = 0.8f),
-                    fontSize = 18.sp
+                    fontSize = 14.sp
                 )
 
-                Spacer(modifier = Modifier.height(36.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(20.dp),
@@ -1411,30 +1407,32 @@ fun LoginScreen(
                     Box(
                         modifier = Modifier
                             .size(60.dp)
-                            .background(Color(0xFFF0F0F0), shape = RoundedCornerShape(16.dp)),
+                            .background(Color(0xFFF0F0F0), shape = RoundedCornerShape(16.dp))
+                            .clickable { },
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
                             painter = painterResource(id = R.drawable.google),
                             contentDescription = "Google",
-                            modifier = Modifier.size(48.dp)
+                            modifier = Modifier.size(36.dp)
                         )
                     }
                     Box(
                         modifier = Modifier
                             .size(60.dp)
-                            .background(Color(0xFFF0F0F0), shape = RoundedCornerShape(16.dp)),
+                            .background(Color(0xFFF0F0F0), shape = RoundedCornerShape(16.dp))
+                            .clickable { },
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
                             painter = painterResource(id = R.drawable.apple),
                             contentDescription = "Apple",
-                            modifier = Modifier.size(48.dp)
+                            modifier = Modifier.size(36.dp)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(30.dp))
+                Spacer(modifier = Modifier.weight(1f))
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically
@@ -1442,7 +1440,7 @@ fun LoginScreen(
                     Text(
                         text = "Don't have an account? ",
                         color = Color.White.copy(alpha = 0.9f),
-                        fontSize = 24.sp
+                        fontSize = 16.sp
                     )
                     TextButton(
                         onClick = onRegisterClick,
@@ -1451,7 +1449,8 @@ fun LoginScreen(
                         Text(
                             text = "Register here",
                             color = Color(0xFF7BB3FF),
-                            fontSize = 24.sp
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -1466,8 +1465,6 @@ fun HomeScreen(
 ) {
     val deepBlue = Color(0xFF20469B)
     val navyBlack = Color(0xFF0B1835)
-    val lightGray = Color(0xFFF4F4F4)
-    val bottomNavColor = Color(0xFF0A0C2D)
 
     // State untuk semua expandable sections
     var isKetentuanExpanded by remember { mutableStateOf(false) }
@@ -1476,274 +1473,221 @@ fun HomeScreen(
     var isPeraturanExpanded by remember { mutableStateOf(false) }
     var isFasilitasExpanded by remember { mutableStateOf(false) }
 
-    Box(
-        modifier = Modifier.fillMaxSize()
+    // Konten yang bisa di scroll
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .background(Color.White)
     ) {
-        // Konten yang bisa di scroll
-        Column(
+        // Header
+        Box(
             modifier = Modifier
-//                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .fillMaxWidth()
+                .height(180.dp)
+                .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+                .background(
+                    Brush.verticalGradient(colors = listOf(deepBlue, navyBlack))
+                )
         ) {
-            // Header
-            Box(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
-                    .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
-                    .background(
-                        Brush.verticalGradient(colors = listOf(deepBlue, navyBlack))
-                    )
+                    .padding(horizontal = 24.dp, vertical = 60.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
+                // Profile Icon
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 60.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .size(60.dp)
+                        .background(
+                            Color.White.copy(alpha = 0.2f),
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    // Profile Icon
+                    Icon(
+                        imageVector = Icons.Outlined.AccountCircle,
+                        contentDescription = "Profile Icon",
+                        tint = Color.White,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Hi, Welcome!",
+                        color = Color.White,
+                        fontSize = 30.sp,
+                        letterSpacing = 3.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Nabilah Atika",
+                        color = Color(0xFF59A7FF),
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 2.sp,
+                        fontSize = 26.sp
+                    )
+                }
+
+                // Notification Icon
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .border(width = 1.dp, color = Color.White, shape = CircleShape)
+                        .clickable { /* Handle notification click */ }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Notification",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Menu Cards - All Expandable
+        Column(
+            modifier = Modifier.padding(horizontal = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+
+            // 1. Ketentuan Peminjaman
+            ExpandableCard(
+                title = "Ketentuan Peminjaman",
+                isExpanded = isKetentuanExpanded,
+                onToggle = { isKetentuanExpanded = !isKetentuanExpanded }
+            ) {
+                Column(modifier = Modifier.padding(top = 16.dp)) {
+                    val ketentuanItems = listOf(
+                        "Pastikan tanggal peminjaman tidak bertabrakan dengan acara lain.",
+                        "Peminjam mengajukan permohonan peminjaman ruangan kepada Kepala Departemen Informatika ITS.",
+                        "Persetujuan reservasi oleh Kepala Departemen berkoordinasi dengan Penanggung Jawab Ruangan didasarkan atas skala prioritas dan potensi gangguan (keamanan, kebisingan) dengan kegiatan waktu yang sama.",
+                        "Setelah semua proses peminjaman ruangan disetujui, peminjam menghubungi Penanggung Jawab Ruangan untuk mendapatkan kunci:",
+                        "Informasi dan jadwal setiap ruangan dapat dilihat di laman ruangan."
+                    )
+
+                    ketentuanItems.forEachIndexed { index, item ->
+                        if (index == 3) {
+                            // Item dengan sub-items
+                            Text(
+                                text = "${index + 1}. $item",
+                                fontSize = 14.sp,
+                                color = Color.Black,
+                                lineHeight = 20.sp,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                            // Sub-items untuk penanggung jawab
+                            val penanggungjawab = listOf(
+                                "• Ruang Kelas - Kunto Hermono",
+                                "• Ruang Aula - Jumali",
+                                "• Lab Pemrograman 1 - Junaidy Abdillah",
+                                "• Lab Pemrograman 2 - Edy Lukito"
+                            )
+                            penanggungjawab.forEach { subItem ->
+                                Text(
+                                    text = subItem,
+                                    fontSize = 14.sp,
+                                    color = Color.Black,
+                                    lineHeight = 18.sp,
+                                    modifier = Modifier.padding(start = 16.dp, top = 2.dp, bottom = 2.dp)
+                                )
+                            }
+                        } else {
+                            Text(
+                                text = "${index + 1}. $item",
+                                fontSize = 14.sp,
+                                color = Color.Black,
+                                lineHeight = 20.sp,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 2. Diagram Alur Peminjaman
+            ExpandableCard(
+                title = "Diagram Alur Peminjaman",
+                isExpanded = isDiagramExpanded,
+                onToggle = { isDiagramExpanded = !isDiagramExpanded }
+            ) {
+                Column(
+                    modifier = Modifier.padding(top = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Box(
                         modifier = Modifier
-                            .size(60.dp)
+                            .fillMaxWidth()
+                            .height(200.dp)
                             .background(
-                                Color.White.copy(alpha = 0.2f),
-                                shape = CircleShape
-                            ),
+                                Color.Gray.copy(alpha = 0.1f),
+                                RoundedCornerShape(12.dp)
+                            )
+                            .border(1.dp, Color.LightGray, RoundedCornerShape(12.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.AccountCircle,
-                            contentDescription = "Profile Icon",
-                            tint = Color.White,
-                            modifier = Modifier.size(36.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Hi, Welcome!",
-                            color = Color.White,
-                            fontSize = 30.sp,
-                            letterSpacing = 3.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = "Nabilah Atika",
-                            color = Color(0xFF59A7FF),
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 2.sp,
-                            fontSize = 26.sp
-                        )
-                    }
-
-                    // Notification Icon
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .border(width = 1.dp, color = Color.White, shape = CircleShape)
-                            .clickable { onLogoutClick() }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = "Notification",
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
+                        Image(
+                            painter = painterResource(id = R.drawable.sop),
+                            contentDescription = "Diagram Alur Peminjaman",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(8.dp),
+                            contentScale = ContentScale.Fit
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            // 3. Tata Tertib
+            ExpandableCard(
+                title = "Tata Tertib",
+                isExpanded = isTatatertibExpanded,
+                onToggle = { isTatatertibExpanded = !isTatatertibExpanded }
+            ) {
+                Column(modifier = Modifier.padding(top = 16.dp)) {
+                    val rules = listOf(
+                        "Penggunaan ruangan harus mendapat persetujuan dari Kepala Departemen Informatika ITS.",
+                        "Pengajuan peminjaman maksimal 2 minggu sebelum pelaksanaan kegiatan.",
+                        "Penggunaan ruang hanya diperbolehkan pada rentang waktu jam kerja (08:00 -18:00) di hari kerja, dan maksimal pukul 16:00 untuk hari Sabtu dan Minggu.",
+                        "Pengguna atau Peminjam hanya dikhususkan untuk civitas akademika Jurusan Teknik Informatika ITS.",
+                        "Pengguna ruang wajib melakukan pemeriksaan kondisi barang yang akan digunakan sebelum maupun sesudah digunakan untuk memastikan keadaan kondisi barang dalam keadaan baik.",
+                        "Tidak dibenarkan meninggalkan ruang dalam keadaan kosong dan tidak terkunci.",
+                        "Jika terjadi kerusakan inventaris ruang karena kelalaian/kecerobohan pemakaian maka yang bersangkutan diberi sanksi untuk:"
+                    )
 
-            // Menu Cards - All Expandable
-            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-
-                // 1. Ketentuan Peminjaman
-                ExpandableCard(
-                    title = "Ketentuan Peminjaman",
-                    isExpanded = isKetentuanExpanded,
-                    onToggle = { isKetentuanExpanded = !isKetentuanExpanded }
-                ) {
-                    Column(modifier = Modifier.padding(top = 16.dp)) {
-                        val ketentuanItems = listOf(
-                            "Pastikan tanggal peminjaman tidak bertabrakan dengan acara lain.",
-                            "Peminjam mengajukan permohonan peminjaman ruangan kepada Kepala Departemen Informatika ITS.",
-                            "Persetujuan reservasi oleh Kepala Departemen berkoordinasi dengan Penanggung Jawab Ruangan didasarkan atas skala prioritas dan potensi gangguan (keamanan, kebisingan) dengan kegiatan waktu yang sama.",
-                            "Setelah semua proses peminjaman ruangan disetujui, peminjam menghubungi Penanggung Jawab Ruangan untuk mendapatkan kunci:",
-                            "Informasi dan jadwal setiap ruangan dapat dilihat di laman ruangan."
-                        )
-
-                        ketentuanItems.forEachIndexed { index, item ->
-                            if (index == 3) {
-                                // Item dengan sub-items
+                    rules.forEachIndexed { index, rule ->
+                        if (index == 6) {
+                            // Item dengan sub-sanksi
+                            Text(
+                                text = "${index + 1}. $rule",
+                                fontSize = 14.sp,
+                                color = Color.Black,
+                                lineHeight = 20.sp,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                            val sanksi = listOf(
+                                "a. Memperbaiki alat tersebut apabila kerusakan tersebut dapat diperbaiki.",
+                                "b. Mengganti dengan alat yang baru apabila kerusakan tersebut tidak bisa diperbaiki."
+                            )
+                            sanksi.forEach { sanksiItem ->
                                 Text(
-                                    text = "${index + 1}. $item",
+                                    text = sanksiItem,
                                     fontSize = 14.sp,
                                     color = Color.Black,
-                                    lineHeight = 20.sp,
-                                    modifier = Modifier.padding(vertical = 4.dp)
-                                )
-                                // Sub-items untuk penanggung jawab
-                                val penanggungjawab = listOf(
-                                    "• Ruang Kelas - Kunto Hermono",
-                                    "• Ruang Aula - Jumali",
-                                    "• Lab Pemrograman 1 - Junaidy Abdillah",
-                                    "• Lab Pemrograman 2 - Edy Lukito"
-                                )
-                                penanggungjawab.forEach { subItem ->
-                                    Text(
-                                        text = subItem,
-                                        fontSize = 14.sp,
-                                        color = Color.Black,
-                                        lineHeight = 18.sp,
-                                        modifier = Modifier.padding(start = 16.dp, top = 2.dp, bottom = 2.dp)
-                                    )
-                                }
-                            } else {
-                                Text(
-                                    text = "${index + 1}. $item",
-                                    fontSize = 14.sp,
-                                    color = Color.Black,
-                                    lineHeight = 20.sp,
-                                    modifier = Modifier.padding(vertical = 4.dp)
+                                    lineHeight = 18.sp,
+                                    modifier = Modifier.padding(start = 16.dp, top = 2.dp, bottom = 2.dp)
                                 )
                             }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // 2. Diagram Alur Peminjaman
-                ExpandableCard(
-                    title = "Diagram Alur Peminjaman",
-                    isExpanded = isDiagramExpanded,
-                    onToggle = { isDiagramExpanded = !isDiagramExpanded }
-                ) {
-                    Column(
-                        modifier = Modifier.padding(top = 16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                                .background(
-                                    Color.Gray.copy(alpha = 0.2f),
-                                    RoundedCornerShape(12.dp)
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.sop),
-                                    contentDescription = "Diagram",
-                                    modifier = Modifier.fillMaxSize(),
-//                                contentScale = ContentScale.Crop
-                                )
-//                                Icon(
-//                                    imageVector = Icons.Default.Image,
-//                                    contentDescription = "Diagram",
-//                                    modifier = Modifier.size(48.dp),
-//                                    tint = Color.Gray
-//                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Diagram Alur Peminjaman",
-                                    color = Color.Gray,
-                                    fontSize = 14.sp
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // 3. Tata Tertib
-                ExpandableCard(
-                    title = "Tata Tertib",
-                    isExpanded = isTatatertibExpanded,
-                    onToggle = { isTatatertibExpanded = !isTatatertibExpanded }
-                ) {
-                    Column(modifier = Modifier.padding(top = 16.dp)) {
-                        val rules = listOf(
-                            "Penggunaan ruangan harus mendapat persetujuan dari Kepala Departemen Informatika ITS.",
-                            "Pengajuan peminjaman maksimal 2 minggu sebelum pelaksanaan kegiatan.",
-                            "Penggunaan ruang hanya diperbolehkan pada rentang waktu jam kerja (08:00 -18:00) di hari kerja, dan maksimal pukul 16:00 untuk hari Sabtu dan Minggu.",
-                            "Pengguna atau Peminjam hanya dikhususkan untuk civitas akademika Jurusan Teknik Informatika ITS.",
-                            "Pengguna ruang wajib melakukan pemeriksaan kondisi barang yang akan digunakan sebelum maupun sesudah digunakan untuk memastikan keadaan kondisi barang dalam keadaan baik.",
-                            "Tidak dibenarkan meninggalkan ruang dalam keadaan kosong dan tidak terkunci.",
-                            "Jika terjadi kerusakan inventaris ruang karena kelalaian/kecerobohan pemakaian maka yang bersangkutan diberi sanksi untuk:"
-                        )
-
-                        rules.forEachIndexed { index, rule ->
-                            if (index == 6) {
-                                // Item dengan sub-sanksi
-                                Text(
-                                    text = "${index + 1}. $rule",
-                                    fontSize = 14.sp,
-                                    color = Color.Black,
-                                    lineHeight = 20.sp,
-                                    modifier = Modifier.padding(vertical = 4.dp)
-                                )
-                                val sanksi = listOf(
-                                    "a. Memperbaiki alat tersebut apabila kerusakan tersebut dapat diperbaiki.",
-                                    "b. Mengganti dengan alat yang baru apabila kerusakan tersebut tidak bisa diperbaiki."
-                                )
-                                sanksi.forEach { sanksiItem ->
-                                    Text(
-                                        text = sanksiItem,
-                                        fontSize = 14.sp,
-                                        color = Color.Black,
-                                        lineHeight = 18.sp,
-                                        modifier = Modifier.padding(start = 16.dp, top = 2.dp, bottom = 2.dp)
-                                    )
-                                }
-                            } else {
-                                Text(
-                                    text = "${index + 1}. $rule",
-                                    fontSize = 14.sp,
-                                    color = Color.Black,
-                                    lineHeight = 20.sp,
-                                    modifier = Modifier.padding(vertical = 4.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // 4. Peraturan Tambahan
-                ExpandableCard(
-                    title = "Peraturan Tambahan",
-                    isExpanded = isPeraturanExpanded,
-                    onToggle = { isPeraturanExpanded = !isPeraturanExpanded }
-                ) {
-                    Column(modifier = Modifier.padding(top = 16.dp)) {
-                        Text(
-                            text = "AULA",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-
-                        val peraturanAula = listOf(
-                            "Peserta kegiatan minimal 75 orang. Jika pada waktu pelaksanaan kegiatan peserta yang hadir kurang dari 75 orang, maka kegiatan tersebut harus bersedia dipindahkan di ruangan lain.",
-                            "Dilarang masuk ke dalam ruang operator.",
-                            "Dilarang melipat/memindahkan kursi tanpa seijin petugas aula.",
-                            "Dilarang membawa kunci aula.",
-                            "Setelah acara/kegiatan selesai, peminjam/pemakai diwajibkan untuk segera menghubungi petugas aula.",
-                            "Dilarang membuang sampah/meninggalkan bekas makanan dan minuman di dalam ruang aula."
-                        )
-
-                        peraturanAula.forEachIndexed { index, rule ->
+                        } else {
                             Text(
                                 text = "${index + 1}. $rule",
                                 fontSize = 14.sp,
@@ -1754,88 +1698,113 @@ fun HomeScreen(
                         }
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(12.dp))
+            // 4. Peraturan Tambahan
+            ExpandableCard(
+                title = "Peraturan Tambahan",
+                isExpanded = isPeraturanExpanded,
+                onToggle = { isPeraturanExpanded = !isPeraturanExpanded }
+            ) {
+                Column(modifier = Modifier.padding(top = 16.dp)) {
+                    Text(
+                        text = "AULA",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
 
-                // 5. Fasilitas
-                ExpandableCard(
-                    title = "Fasilitas",
-                    isExpanded = isFasilitasExpanded,
-                    onToggle = { isFasilitasExpanded = !isFasilitasExpanded }
-                ) {
-                    Column(modifier = Modifier.padding(top = 16.dp)) {
-                        // AULA
-                        FasilitasSection(
-                            title = "AULA",
-                            facilities = listOf(
-                                "Kapasitas kursi 200 orang",
-                                "Terhubung dengan Gygabytes INTRAnet ITS, dan INTERnet up to 7 GB (Shared with integra authentication)",
-                                "Wifi dual band 2.4 GHz dan 5 Ghz",
-                                "Proyektor",
-                                "Audio System Supported"
-                            )
-                        )
+                    val peraturanAula = listOf(
+                        "Peserta kegiatan minimal 75 orang. Jika pada waktu pelaksanaan kegiatan peserta yang hadir kurang dari 75 orang, maka kegiatan tersebut harus bersedia dipindahkan di ruangan lain.",
+                        "Dilarang masuk ke dalam ruang operator.",
+                        "Dilarang melipat/memindahkan kursi tanpa seijin petugas aula.",
+                        "Dilarang membawa kunci aula.",
+                        "Setelah acara/kegiatan selesai, peminjam/pemakai diwajibkan untuk segera menghubungi petugas aula.",
+                        "Dilarang membuang sampah/meninggalkan bekas makanan dan minuman di dalam ruang aula."
+                    )
 
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // RUANG KELAS
-                        FasilitasSection(
-                            title = "RUANG KELAS",
-                            facilities = listOf(
-                                "Kapasitas kursi 40 orang",
-                                "Terhubung dengan Gygabytes INTRAnet ITS, dan INTERnet up to 7 GB (Shared with integra authentication)",
-                                "Wifi dual band 2.4 GHz dan 5 Ghz",
-                                "Proyektor"
-                            )
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // LAB PEMROGRAMAN 1
-                        FasilitasSection(
-                            title = "LAB. PEMROGRAMAN 1",
-                            facilities = listOf(
-                                "Kapasitas kursi 75 orang",
-                                "Terhubung dengan Gygabytes INTRAnet ITS, dan INTERnet up to 7 GB (Shared with integra authentication)",
-                                "Wifi dual band 2.4 GHz dan 5 Ghz",
-                                "Desktop PC (Processor i5, RAM 8GB, HDD 1TB)",
-                                "Proyektor",
-                                "Audio System Supported"
-                            )
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // LAB PEMROGRAMAN 2
-                        FasilitasSection(
-                            title = "LAB. PEMROGRAMAN 2",
-                            facilities = listOf(
-                                "Kapasitas kursi 54 orang",
-                                "Terhubung dengan Gygabytes INTRAnet ITS, dan INTERnet up to 7 GB (Shared with integra authentication)",
-                                "Wifi dual band 2.4 GHz dan 5 Ghz",
-                                "Desktop PC (Processor i5, RAM 8GB, HDD 1TB)",
-                                "Proyektor",
-                                "Audio System Supported"
-                            )
+                    peraturanAula.forEachIndexed { index, rule ->
+                        Text(
+                            text = "${index + 1}. $rule",
+                            fontSize = 14.sp,
+                            color = Color.Black,
+                            lineHeight = 20.sp,
+                            modifier = Modifier.padding(vertical = 4.dp)
                         )
                     }
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
             }
-        }
 
-        // Bottom Navigation Bar
-        BottomNavigationBar(
-            modifier = Modifier.align(Alignment.BottomCenter),
-            backgroundColor = bottomNavColor
-        )
+            // 5. Fasilitas
+            ExpandableCard(
+                title = "Fasilitas",
+                isExpanded = isFasilitasExpanded,
+                onToggle = { isFasilitasExpanded = !isFasilitasExpanded }
+            ) {
+                Column(
+                    modifier = Modifier.padding(top = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // AULA
+                    FasilitasSection(
+                        title = "AULA",
+                        facilities = listOf(
+                            "Kapasitas kursi 200 orang",
+                            "Terhubung dengan Gygabytes INTRAnet ITS, dan INTERnet up to 7 GB (Shared with integra authentication)",
+                            "Wifi dual band 2.4 GHz dan 5 Ghz",
+                            "Proyektor",
+                            "Audio System Supported"
+                        )
+                    )
+
+                    // RUANG KELAS
+                    FasilitasSection(
+                        title = "RUANG KELAS",
+                        facilities = listOf(
+                            "Kapasitas kursi 40 orang",
+                            "Terhubung dengan Gygabytes INTRAnet ITS, dan INTERnet up to 7 GB (Shared with integra authentication)",
+                            "Wifi dual band 2.4 GHz dan 5 Ghz",
+                            "Proyektor"
+                        )
+                    )
+
+                    // LAB PEMROGRAMAN 1
+                    FasilitasSection(
+                        title = "LAB. PEMROGRAMAN 1",
+                        facilities = listOf(
+                            "Kapasitas kursi 75 orang",
+                            "Terhubung dengan Gygabytes INTRAnet ITS, dan INTERnet up to 7 GB (Shared with integra authentication)",
+                            "Wifi dual band 2.4 GHz dan 5 Ghz",
+                            "Desktop PC (Processor i5, RAM 8GB, HDD 1TB)",
+                            "Proyektor",
+                            "Audio System Supported"
+                        )
+                    )
+
+                    // LAB PEMROGRAMAN 2
+                    FasilitasSection(
+                        title = "LAB. PEMROGRAMAN 2",
+                        facilities = listOf(
+                            "Kapasitas kursi 54 orang",
+                            "Terhubung dengan Gygabytes INTRAnet ITS, dan INTERnet up to 7 GB (Shared with integra authentication)",
+                            "Wifi dual band 2.4 GHz dan 5 Ghz",
+                            "Desktop PC (Processor i5, RAM 8GB, HDD 1TB)",
+                            "Proyektor",
+                            "Audio System Supported"
+                        )
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
     }
 }
 
 @Composable
 fun ExpandableCard(
-   title: String,
+    title: String,
     isExpanded: Boolean,
     onToggle: () -> Unit,
     content: @Composable () -> Unit
@@ -1844,9 +1813,9 @@ fun ExpandableCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFF4F4F4)),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(22.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             // Header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1857,7 +1826,7 @@ fun ExpandableCard(
                 Text(
                     text = title,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 24.sp,
+                    fontSize = 20.sp,
                     color = Color.Black,
                     modifier = Modifier.weight(1f)
                 )
@@ -1868,15 +1837,16 @@ fun ExpandableCard(
                     else
                         Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = if (isExpanded) "Collapse" else "Expand",
-                    tint = Color.Gray
+                    tint = Color.Gray,
+                    modifier = Modifier.size(32.dp)
                 )
             }
 
             // Expandable Content
             AnimatedVisibility(
                 visible = isExpanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
+                enter = expandVertically(animationSpec = tween(durationMillis = 300)) + fadeIn(animationSpec = tween(durationMillis = 300)),
+                exit = shrinkVertically(animationSpec = tween(durationMillis = 300)) + fadeOut(animationSpec = tween(durationMillis = 300))
             ) {
                 content()
             }
@@ -1898,14 +1868,21 @@ fun FasilitasSection(
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        facilities.forEachIndexed { index, facility ->
-            Text(
-                text = "${index + 1}. $facility",
-                fontSize = 14.sp,
-                color = Color.Black,
-                lineHeight = 20.sp,
-                modifier = Modifier.padding(vertical = 2.dp)
-            )
+        facilities.forEach { facility ->
+            Row(modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)) {
+                Text(
+                    text = "• ",
+                    fontSize = 14.sp,
+                    color = Color.Black,
+                    lineHeight = 20.sp,
+                )
+                Text(
+                    text = facility,
+                    fontSize = 14.sp,
+                    color = Color.Black,
+                    lineHeight = 20.sp
+                )
+            }
         }
     }
 }
@@ -1921,7 +1898,7 @@ fun WelcomeScreenPreview() {
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, widthDp = 360, heightDp = 800)
 @Composable
 fun LoginScreenPreview() {
     ResIFTheme {
@@ -1932,7 +1909,7 @@ fun LoginScreenPreview() {
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, widthDp = 360, heightDp = 800)
 @Composable
 fun RegisterScreenPreview() {
     ResIFTheme {
@@ -1940,5 +1917,13 @@ fun RegisterScreenPreview() {
             onRegisterSuccess = {},
             onLoginClick = {}
         )
+    }
+}
+
+@Preview(showBackground = true, widthDp = 360, heightDp = 800)
+@Composable
+fun MainScreenPreview() {
+    ResIFTheme {
+        MainScreen(onLogoutClick = {})
     }
 }
